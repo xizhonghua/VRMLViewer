@@ -8,13 +8,13 @@
 		<style>
 			body {
 				font-family: Monospace;
-				background-color: #000;
+				background-color: #fff;
 				color: #fff;
 				margin: 0px;
 				overflow: hidden;
 			}
 			#info {
-				color: #fff;
+				color: #000;
 				position: absolute;
 				top: 10px;
 				width: 100%;
@@ -27,10 +27,7 @@
 	</head>
 
 	<body>
-		<div id="info">
-		<a href="http://threejs.org" target="_blank">three.js</a> -
-		vrml format loader test -
-		<!--model from <a href="http://cs.iupui.edu/~aharris/webDesign/vrml/" target="_blank">VRML 2.0 Tutorial</a>,-->
+		<div id="info">	
 		</div>
 
 		<script src="js/three.min.js"></script>
@@ -52,8 +49,12 @@
 
 			var cross;
 
+      var wrlObject = null;
+
+      var mouseDown = false;
+
 			init();
-			animate();
+			animate();      
 
 			function init() {
 
@@ -73,22 +74,21 @@
 
 				// light
 
-				var dirLight = new THREE.DirectionalLight( 0xffffff );
+				var dirLight = new THREE.DirectionalLight( 0xcccccc );
 				dirLight.position.set( 200, 200, 1000 ).normalize();
 
 				camera.add( dirLight );
 				camera.add( dirLight.target );
 
 				var loader = new THREE.VRMLLoader();
-				loader.load( 'models/house.wrl', function ( object ) {
-
+				loader.load( 'models/fish-950_s_0.wrl', function ( object ) {
+          wrlObject = object;
 					scene.add( object );
-
 				} );
 
 				// renderer
 
-				renderer = new THREE.WebGLRenderer( { antialias: false } );
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 
@@ -105,6 +105,14 @@
 
 				window.addEventListener( 'resize', onWindowResize, false );
 
+				document.addEventListener( 'drop', onDrop, false );    
+
+         /* events fired on the drop targets */
+        document.addEventListener( 'dragover', function( e ) {
+        // prevent default to allow drop
+          e.preventDefault();
+        }, false);
+
 			}
 
 			function onWindowResize() {
@@ -117,6 +125,35 @@
 				controls.handleResize();
 
 			}
+
+			function onDrop(e) {				
+				e.stopPropagation();
+				e.preventDefault();
+
+        var files = e.dataTransfer.files; // FileList object.
+
+        // files is a FileList of File objects. List some properties.
+        // var output = [];
+        for (var i = 0, f; f = files[i]; i++) {          
+          if(files[i].name.endsWith('.wrl')) {
+            loadFile(files[i])
+            break;
+          }          
+        }        
+      }
+
+      function loadFile(file) {
+        var loader = new THREE.VRMLLoader();
+        loader.loadFile( file, function ( object ) {
+          
+          scene.remove( wrlObject );
+          wrlObject = object;
+
+          document.getElementById('info').innerHtml = file.name;
+
+          scene.add( object );       
+        } );
+      }			
 
 			function animate() {
 

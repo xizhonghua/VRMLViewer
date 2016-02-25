@@ -39,6 +39,20 @@ THREE.VRMLLoader.prototype = {
 
 	},
 
+	loadFile : function ( file, onLoad, onProgress, onError ) {
+		var scope = this;
+		var reader = new FileReader();
+
+    reader.onload = function(e) {
+        onLoad ( scope.parse( reader.result ) );
+    }
+
+    reader.onProgress = onProgress;
+    reader.onError = onError;
+
+    reader.readAsText(file);    
+	},
+
 	setCrossOrigin: function ( value ) {
 
 		this.crossOrigin = value;
