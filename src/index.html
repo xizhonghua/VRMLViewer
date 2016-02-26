@@ -24,6 +24,9 @@
 			}
 			#info a, .button { color: #f00; font-weight: bold; text-decoration: underline; cursor: pointer }
 		</style>
+    <link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.11.4/themes/flick/jquery-ui.css">    
+    <script src='https://code.jquery.com/jquery-2.1.3.min.js'></script>
+    <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
 	</head>
 
 	<body>
@@ -36,12 +39,18 @@
       </select>	
 		</div>
 
+    <div id="help-dialog" title="Help">
+    x/X: rotate around x-axis <br/>
+    y/Y: rotate around y-axis <br/>
+    z/Z: rotate around z-axis <br/>
+    c: toggle colors [original/preset] <br />
+    </div>
+
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r74/three.min.js"></script>		
     <script src="http://threejs.org/examples/js/controls/TrackballControls.js"></script>
     <script src="http://threejs.org/examples/js/libs/stats.min.js"></script>
     <script src="http://threejs.org/examples/js/libs/dat.gui.min.js"></script>
-    <script src="http://threejs.org/examples/js/Detector.js"></script>
-    <script src='https://code.jquery.com/jquery-2.1.3.min.js'></script>
+    <script src="http://threejs.org/examples/js/Detector.js"></script>    
 
 		<script src="js/VRMLLoader.js"></script>
 				
@@ -63,13 +72,17 @@
       var config = { vertexNormal: true, orignialColor: true };
     	var gui;
 
-			init();
-			animate();      
+      var $helpDialog = $( "#help-dialog" ).dialog();
+
+      $(function(){
+			 init();
+			 animate();   
+      });
 
 
 			function initGUI() {        
 				gui = new dat.GUI();
-				gui.add(config, 'vertexNormal').onChange( updateNormal );	
+				gui.add(config, 'vertexNormal').onChange( updateNormal );	        
 			}
 
       function initControls() {
@@ -122,14 +135,16 @@
 				stats = new Stats();
 				stats.domElement.style.position = 'absolute';
 				stats.domElement.style.top = '0px';
-				container.appendChild( stats.domElement );
-
+				container.appendChild( stats.domElement );      
 
         // controls
         initControls();
 
         $("#model-list").change(onModelListChange);
         loadModelFromUrl($("#model-list").val());
+
+
+        $helpDialog.dialog('close');
 
         // window events
 				window.addEventListener( 'resize', onWindowResize, false );
@@ -219,7 +234,9 @@
           wrlObject.rotation.z = wrlObject.rotation.z-0.05;
 				} else if(keychar == 'c') {
 					toggleColors();
-				}
+				} else if(keychar == 'h') {
+          $helpDialog.dialog('open');
+        }
 			}   
 
 			function toggleColors() {
