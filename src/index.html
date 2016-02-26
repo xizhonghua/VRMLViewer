@@ -1,301 +1,241 @@
 <!-- modified from http://threejs.org/examples/webgl_loader_vrml.html -->
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<title>three.js webgl - loaders - vrml loader</title>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<style>
-			body {
-				font-family: Monospace;
-				background-color: #fff;
-				color: #fff;
-				margin: 0px;
-				overflow: hidden;
-			}
-			#info {
-				color: #000;
-				position: absolute;
-				top: 10px;
-				width: 100%;
-				text-align: center;
-				z-index: 100;
-				display:block;        
-			}
-			#info a, .button { color: #f00; font-weight: bold; text-decoration: underline; cursor: pointer }
-		</style>
-    <link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.11.4/themes/flick/jquery-ui.css">    
+
+<head>
+    <title>three.js webgl - loaders - vrml loader</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="style/main.css">
+    <link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.11.4/themes/flick/jquery-ui.css">
     <script src='https://code.jquery.com/jquery-2.1.3.min.js'></script>
     <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
-	</head>
+</head>
 
-	<body>
-		<div id="info">
-    Models:
-      <select id="model-list">
-        <option value="models/fish-950_s_0.wrl"> Fish </option>
-        <option value="models/man2_s_0.wrl"> Man </option>
-        <option value="models/dragon-344_s_0.wrl"> Dragon </option>
-      </select>	
-		</div>
-
-    <div id="help-dialog" title="Help">
-    x/X: rotate around x-axis <br/>
-    y/Y: rotate around y-axis <br/>
-    z/Z: rotate around z-axis <br/>
-    c: toggle colors [original/preset] <br />
+<body>
+    <div id="info">
+        Models:
+        <select id="model-list">
+            <option value="models/fish-950_s_0.wrl"> Fish </option>
+            <option value="models/man2_s_0.wrl"> Man </option>
+            <option value="models/dragon-344_s_0.wrl"> Dragon </option>
+        </select>
     </div>
-
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r74/three.min.js"></script>		
+    <div id="copyright">
+        <!-- <a href="http://masc.cs.gmu.edu/wiki/UnfoldingPolyhedra" target="_blank">Project Website</a> |  -->
+        <a href="https://github.com/xizhonghua/VRMLViewer" target="_blank">Github</a> | &copy;
+        <a href="http://cs.gmu.edu" target="_blank">GMU</a> -
+        <a href="http://masc.cs.gmu.edu/wiki" target="_blank">MASC</a> -
+        <a href="http://masc.cs.gmu.edu/wiki/ZhonghuaXi" target="_blank">Zhonghua Xi</a>
+    </div>
+    <div id="help-dialog" title="Help">
+        x/X: rotate around x-axis
+        <br/> y/Y: rotate around y-axis
+        <br/> z/Z: rotate around z-axis
+        <br/> c: toggle colors [original/preset]
+        <br />
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r74/three.min.js"></script>
     <script src="http://threejs.org/examples/js/controls/TrackballControls.js"></script>
     <script src="http://threejs.org/examples/js/libs/stats.min.js"></script>
     <script src="http://threejs.org/examples/js/libs/dat.gui.min.js"></script>
-    <script src="http://threejs.org/examples/js/Detector.js"></script>    
+    <script src="http://threejs.org/examples/js/Detector.js"></script>
+    <script src="js/VRMLLoader.js"></script>
+    <script>
+    if (!Detector.webgl) Detector.addGetWebGLMessage();
+    var container, stats;
+    var camera, controls, scene, renderer;
+    var cross;
+    var wrlObject = null;
+    var mouseDown = false;
+    var config = {
+        vertexNormal: true,
+        orignialColor: true
+    };
+    var gui;
+    var $helpDialog = $("#help-dialog").dialog();
+    $(function() {
+        init();
+        animate();
+    });
 
-		<script src="js/VRMLLoader.js"></script>
-				
+    function initGUI() {
+        gui = new dat.GUI();
+        gui.add(config, 'vertexNormal').onChange(updateNormal);
+    }
 
-		<script>
-
-			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
-
-			var container, stats;
-
-			var camera, controls, scene, renderer;
-
-			var cross;
-
-      var wrlObject = null;
-
-      var mouseDown = false;
-
-      var config = { vertexNormal: true, orignialColor: true };
-    	var gui;
-
-      var $helpDialog = $( "#help-dialog" ).dialog();
-
-      $(function(){
-			 init();
-			 animate();   
-      });
-
-
-			function initGUI() {        
-				gui = new dat.GUI();
-				gui.add(config, 'vertexNormal').onChange( updateNormal );	        
-			}
-
-      function initControls() {
+    function initControls() {
         // control
-        controls = new THREE.TrackballControls( camera, renderer.domElement );
-
+        controls = new THREE.TrackballControls(camera, renderer.domElement);
         controls.rotateSpeed = 5.0;
         controls.zoomSpeed = 1.5;
         controls.panSpeed = 0.8;
-
         controls.noZoom = false;
         controls.noPan = false;
-
         controls.staticMoving = true;
         controls.dynamicDampingFactor = 0.3;
-
-        controls.keys = [ 65, 83, 68 ];
-
+        controls.keys = [65, 83, 68];
         // controls.addEventListener( 'change', render );
-      }
+    }
 
-      function init() {
-
-        // initGUI();				
-
-				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.01, 1e10 );
-				camera.position.z = 3;				
-
-				scene = new THREE.Scene();
-				scene.add( camera );
-
-				// light
-
-				var dirLight = new THREE.DirectionalLight( 0xcccccc );
-				dirLight.position.set( 200, 200, 1000 ).normalize();
-
-				camera.add( dirLight );
-				camera.add( dirLight.target );				
-
-				// renderer
-
-				renderer = new THREE.WebGLRenderer( { antialias: true } );
-				renderer.setPixelRatio( window.devicePixelRatio );
-				renderer.setSize( window.innerWidth, window.innerHeight );
-
-				container = document.createElement( 'div' );
-				document.body.appendChild( container );
-				container.appendChild( renderer.domElement );
-
-				stats = new Stats();
-				stats.domElement.style.position = 'absolute';
-				stats.domElement.style.top = '0px';
-				container.appendChild( stats.domElement );      
-
+    function init() {
+        // initGUI();
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 1e10);
+        camera.position.z = 3;
+        scene = new THREE.Scene();
+        scene.add(camera);
+        // light
+        var dirLight = new THREE.DirectionalLight(0xcccccc);
+        dirLight.position.set(200, 200, 1000).normalize();
+        camera.add(dirLight);
+        camera.add(dirLight.target);
+        // renderer
+        renderer = new THREE.WebGLRenderer({
+            antialias: true
+        });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container = document.createElement('div');
+        document.body.appendChild(container);
+        container.appendChild(renderer.domElement);
+        stats = new Stats();
+        stats.domElement.style.position = 'absolute';
+        stats.domElement.style.top = '0px';
+        container.appendChild(stats.domElement);
         // controls
         initControls();
-
         $("#model-list").change(onModelListChange);
         loadModelFromUrl($("#model-list").val());
-
-
         $helpDialog.dialog('close');
-
         // window events
-				window.addEventListener( 'resize', onWindowResize, false );
-
-				document.addEventListener( 'drop', onDrop, false );    
-
-         /* events fired on the drop targets */
-        document.addEventListener( 'dragover', function( e ) {
-        // prevent default to allow drop
-        	e.preventDefault();  
-          e.stopPropagation();  
+        window.addEventListener('resize', onWindowResize, false);
+        document.addEventListener('drop', onDrop, false);
+        /* events fired on the drop targets */
+        document.addEventListener('dragover', function(e) {
+            // prevent default to allow drop
+            e.preventDefault();
+            e.stopPropagation();
         }, false);
-
         document.addEventListener('keypress', onKeyPress);
+    }
 
-
-			}
-
-      function onModelListChange(e) {
+    function onModelListChange(e) {
         var url = $(e.target).val();
         loadModelFromUrl(url);
-      }
+    }
 
-			function onWindowResize() {
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        // controls.handleResize();
+    }
 
-				camera.aspect = window.innerWidth / window.innerHeight;
-				camera.updateProjectionMatrix();
-
-				renderer.setSize( window.innerWidth, window.innerHeight );
-
-				// controls.handleResize();
-
-			}
-
-			function onDrop(e) {				
-				e.stopPropagation();
-				e.preventDefault();
-
+    function onDrop(e) {
+        e.stopPropagation();
+        e.preventDefault();
         var files = e.dataTransfer.files; // FileList object.
-
         // files is a FileList of File objects. List some properties.
         // var output = [];
-        for (var i = 0, f; f = files[i]; i++) {          
-          if(files[i].name.endsWith('.wrl')) {
-            loadModelFromFile(files[i])
-            break;
-          }          
-        }        
-      }
+        for (var i = 0, f; f = files[i]; i++) {
+            if (files[i].name.endsWith('.wrl')) {
+                loadModelFromFile(files[i])
+                break;
+            }
+        }
+    }
 
-      function loadModelFromUrl(url, name) {
+    function loadModelFromUrl(url, name) {
         var loader = new THREE.VRMLLoader();
-        loader.load( url, onObjectLoad);
-      }
+        loader.load(url, onObjectLoad);
+    }
 
-      function loadModelFromFile(file) {
+    function loadModelFromFile(file) {
         // document.getElementById('info').innerHtml = file.name;
         var loader = new THREE.VRMLLoader();
-        loader.loadFile( file, onObjectLoad);
-      }
+        loader.loadFile(file, onObjectLoad);
+    }
 
-      function onObjectLoad(object) {
-        if ( wrlObject ) scene.remove( wrlObject );
-        wrlObject = object;				
-
+    function onObjectLoad(object) {
+        if (wrlObject) scene.remove(wrlObject);
+        wrlObject = object;
         updateNormal();
+        scene.add(wrlObject);
+    }
 
-        scene.add( wrlObject );
-      }
-
-      function onKeyPress(e) {
+    function onKeyPress(e) {
         var key = event.keyCode || event.which;
         var keychar = String.fromCharCode(key);
-        if(keychar == 'r') {
-        	wrlObject.rotation.x = wrlObject.rotation.y = wrlObject.z = 0.0;
-        } else if(keychar == 'x') {
-          wrlObject.rotation.x = wrlObject.rotation.x+0.05;
-        } else if(keychar == 'X') {
-					wrlObject.rotation.x = wrlObject.rotation.x-0.05;
-        } else if(keychar == 'y') {
-          wrlObject.rotation.y = wrlObject.rotation.y+0.05;
-        } else if(keychar == 'Y') {
-          wrlObject.rotation.y = wrlObject.rotation.y-0.05;
-        } else if(keychar == 'z') {
-          wrlObject.rotation.z = wrlObject.rotation.z+0.05;
-        } else if(keychar == 'Z') {
-          wrlObject.rotation.z = wrlObject.rotation.z-0.05;
-				} else if(keychar == 'c') {
-					toggleColors();
-				} else if(keychar == 'h') {
-          $helpDialog.dialog('open');
+        if (keychar == 'r') {
+            wrlObject.rotation.x = wrlObject.rotation.y = wrlObject.z = 0.0;
+        } else if (keychar == 'x') {
+            wrlObject.rotation.x = wrlObject.rotation.x + 0.05;
+        } else if (keychar == 'X') {
+            wrlObject.rotation.x = wrlObject.rotation.x - 0.05;
+        } else if (keychar == 'y') {
+            wrlObject.rotation.y = wrlObject.rotation.y + 0.05;
+        } else if (keychar == 'Y') {
+            wrlObject.rotation.y = wrlObject.rotation.y - 0.05;
+        } else if (keychar == 'z') {
+            wrlObject.rotation.z = wrlObject.rotation.z + 0.05;
+        } else if (keychar == 'Z') {
+            wrlObject.rotation.z = wrlObject.rotation.z - 0.05;
+        } else if (keychar == 'c') {
+            toggleColors();
+        } else if (keychar == 'h') {
+            $helpDialog.dialog('open');
         }
-			}   
+    }
 
-			function toggleColors() {
-				var index = 0;
+    function toggleColors() {
+        var index = 0;
+        var colors = [0xE53853, 0xDE2837, 0x46AAAD, 0xFFD485, 0x7248F3, 0x97F27E, 0xBBBB59,
+            0x00E9DC, 0x01E98A, 0xF1DF82, 0xFF8C52, 0xF66041, 0x3F9BBF,
+            0xBF1725, 0xF250C7
+        ];
+        for (var i = 0; i < wrlObject.children.length; ++i) {
+            var child = wrlObject.children[i];
+            if (child.children.length == 0) continue; // sky...
+            var mesh = child.children[0];
+            index = (index + 1) % colors.length;
+            if (mesh.userData.orgColor != null) {
+                mesh.material.color = mesh.userData.orgColor;
+                mesh.userData.orgColor = null;
+            } else {
+                mesh.userData.orgColor = mesh.material.color;
+                mesh.material.color = new THREE.Color(colors[index])
+            }
+        }
+    }
 
-				var colors = [0xE53853, 0xDE2837, 0x46AAAD, 0xFFD485, 0x7248F3, 0x97F27E, 0xBBBB59,
-											0x00E9DC, 0x01E98A, 0xF1DF82, 0xFF8C52, 0xF66041, 0x3F9BBF, 
-											0xBF1725, 0xF250C7];
+    function updateNormal() {
+        for (var i = 0; i < wrlObject.children.length; ++i) {
+            var child = wrlObject.children[i];
+            if (child.children.length == 0) continue; // sky...
+            var mesh = child.children[0];
+            if (config.vertexNormal) {
+                mesh.geometry.computeVertexNormals();
+            } else {
+                //   // clear vertex normal
+                //   for ( var f = 0, fl = mesh.geometry.faces.length; f < fl; f ++ ) {
+                //     var face = mesh.geometry.faces[f];
+                //     face.vertexNormals = [];
+                //   }
+                //   mesh.geometry.verticesNeedUpdate = true;
+                //   mesh.geometry.normalsNeedUpdate = true;
+                //   mesh.geometry.elementsNeedUpdate = true;
+                //   mesh.geometry.dynamic = true;
+            }
+        }
+    }
 
-				for(var i=0;i<wrlObject.children.length;++i) {
-					var child = wrlObject.children[i];
-					if(child.children.length == 0) continue; // sky...
-					var mesh = child.children[0];
-					index = (index+1) % colors.length;
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+        stats.update();
+    }
+    </script>
+</body>
 
-					if (mesh.userData.orgColor != null) {
-						mesh.material.color = mesh.userData.orgColor;
-						mesh.userData.orgColor = null;
-					} else {
-						mesh.userData.orgColor = mesh.material.color;
-						mesh.material.color = new THREE.Color(colors[index])						
-					}
-
-				}
-			}            
-
-      function updateNormal() {
-        for(var i=0;i<wrlObject.children.length;++i) {
-          var child = wrlObject.children[i];
-          if(child.children.length == 0) continue; // sky...
-          var mesh = child.children[0];
-          if(config.vertexNormal) {
-            mesh.geometry.computeVertexNormals();
-          } else {
-          //   // clear vertex normal
-          //   for ( var f = 0, fl = mesh.geometry.faces.length; f < fl; f ++ ) {
-          //     var face = mesh.geometry.faces[f];
-          //     face.vertexNormals = [];
-          //   }
-          //   mesh.geometry.verticesNeedUpdate = true;
-          //   mesh.geometry.normalsNeedUpdate = true;
-          //   mesh.geometry.elementsNeedUpdate = true;
-          //   mesh.geometry.dynamic = true;
-          }        
-        }               
-      }      
-
-			function animate() {
-
-				requestAnimationFrame( animate );
-
-				controls.update();
-				renderer.render( scene, camera );
-
-				stats.update();
-
-			}
-
-		</script>
-
-	</body>
 </html>
