@@ -81,10 +81,7 @@
 				camera.add( dirLight.target );
 
 				var loader = new THREE.VRMLLoader();
-				loader.load( 'models/fish-950_s_0.wrl', function ( object ) {
-          wrlObject = object;
-					scene.add( object );
-				} );
+				loader.load( 'models/fish-950_s_0.wrl', onObjectLoad);
 
 				// renderer
 
@@ -113,6 +110,7 @@
           e.preventDefault();
         }, false);
 
+        document.addEventListener('keypress', onKeyPress);
 			}
 
 			function onWindowResize() {
@@ -122,7 +120,7 @@
 
 				renderer.setSize( window.innerWidth, window.innerHeight );
 
-				controls.handleResize();
+				// controls.handleResize();
 
 			}
 
@@ -143,17 +141,71 @@
       }
 
       function loadFile(file) {
+        document.getElementById('info').innerHtml = file.name;
         var loader = new THREE.VRMLLoader();
-        loader.loadFile( file, function ( object ) {
-          
-          scene.remove( wrlObject );
-          wrlObject = object;
+        loader.loadFile( file, onObjectLoad);
+      }
 
-          document.getElementById('info').innerHtml = file.name;
+      function onObjectLoad(object) {
+        if ( wrlObject ) scene.remove( wrlObject );
+        wrlObject = object;
 
-          scene.add( object );       
-        } );
-      }			
+
+				for(var i=0;i<wrlObject.children.length;++i) {
+					var child = wrlObject.children[i];
+					if(child.children.length == 0) continue; // sky...
+					var mesh = child.children[0];
+					mesh.geometry.computeVertexNormals();
+				}
+
+        scene.add( wrlObject );
+      }
+
+      function onKeyPress(e) {
+        var key = event.keyCode || event.which;
+        var keychar = String.fromCharCode(key);
+        if(keychar == 'r') {
+        	wrlObject.rotation.x = wrlObject.rotation.y = wrlObject.z = 0.0;
+        } else if(keychar == 'x') {
+          wrlObject.rotation.x = wrlObject.rotation.x+0.05;
+        } else if(keychar == 'X') {
+					wrlObject.rotation.x = wrlObject.rotation.x-0.05;
+        } else if(keychar == 'y') {
+          wrlObject.rotation.y = wrlObject.rotation.y+0.05;
+        } else if(keychar == 'Y') {
+          wrlObject.rotation.y = wrlObject.rotation.y-0.05;
+        } else if(keychar == 'z') {
+          wrlObject.rotation.z = wrlObject.rotation.z+0.05;
+        } else if(keychar == 'Z') {
+          wrlObject.rotation.z = wrlObject.rotation.z-0.05;
+				} else if(keychar == 'c') {
+					toggleColors();
+				}
+			}   
+
+			function toggleColors() {
+				var index = 0;
+
+				var colors = [0xE53853, 0xDE2837, 0x46AAAD, 0xFFD485, 0x7248F3, 0x97F27E, 0xBBBB59,
+											0x00E9DC, 0x01E98A, 0xF1DF82, 0xFF8C52, 0xF66041, 0x3F9BBF, 
+											0xBF1725, 0xF250C7];
+
+				for(var i=0;i<wrlObject.children.length;++i) {
+					var child = wrlObject.children[i];
+					if(child.children.length == 0) continue; // sky...
+					var mesh = child.children[0];
+					index = (index+1) % colors.length;
+
+					if (mesh.userData.orgColor != null) {
+						mesh.material.color = mesh.userData.orgColor;
+						mesh.userData.orgColor = null;
+					} else {
+						mesh.userData.orgColor = mesh.material.color;
+						mesh.material.color = new THREE.Color(colors[index])						
+					}
+
+				}
+			}   
 
 			function animate() {
 
