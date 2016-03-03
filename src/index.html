@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-  <title>three.js webgl - loaders - vrml loader</title>
+  <title>VRML Viewer</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
   <link rel="stylesheet" type="text/css" href="style/main.css">
@@ -14,12 +14,13 @@
 
 <body>
   <div id="info">
-    Models:
-    <select id="model-list">
-      <option value="models/fish-950_s_0.wrl"> Fish </option>
-      <option value="models/man2_s_0.wrl"> Man </option>
-      <option value="models/dragon-344_s_0.wrl"> Dragon </option>
-    </select>
+    <div>
+      Models:
+      <select id="model-list">
+      </select>
+    </div>
+    <div id="measure">
+    </div>
   </div>
   <div id="copyright">
     <!-- <a href="http://masc.cs.gmu.edu/wiki/UnfoldingPolyhedra" target="_blank">Project Website</a> |  -->
@@ -42,6 +43,7 @@
   <script src="http://threejs.org/examples/js/libs/dat.gui.min.js"></script>
   <script src="http://threejs.org/examples/js/Detector.js"></script>
   <script src="js/VRMLLoader.js"></script>
+  <script src="js/extension.js"></script>
   <script>
   if (!Detector.webgl) Detector.addGetWebGLMessage();
   var container, stats;
@@ -53,12 +55,34 @@
     vertexNormal: true,
     orignialColor: true
   };
+
+  var measure = {
+    boundingSphere: new THREE.Sphere(),
+    vertices: 0,
+    faces: 0
+  }
+
   var gui;
   var $helpDialog = $("#help-dialog").dialog();
+
+
   $(function() {
-    init();
-    animate();
+    loadModelList(function() {
+      init();
+      animate();
+    });
   });
+
+  // load model list
+  function loadModelList(callback) {
+    $.get("models/models.json", function(modeList) {
+      var list = $("#model-list");
+      $.each(modeList, function(index, item) {
+        list.append(new Option(item.name, item.url));
+      });
+      callback();
+    });
+  }
 
   function initGUI() {
     gui = new dat.GUI();
@@ -75,25 +99,29 @@
     controls.noPan = false;
     controls.staticMoving = true;
     controls.dynamicDampingFactor = 0.3;
-    controls.keys = [65, 83, 68];
+    // controls.keys = [65, 83, 68];
     // controls.addEventListener( 'change', render );
   }
 
   function init() {
-    // initGUI();
+    scene = new THREE.Scene();
+
+    // create camera
     camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 1e10);
     camera.position.z = 3;
-    scene = new THREE.Scene();
-    scene.add(camera);
+
     // light
     var dirLight = new THREE.DirectionalLight(0xcccccc);
     dirLight.position.set(200, 200, 1000).normalize();
     camera.add(dirLight);
     camera.add(dirLight.target);
+
+    scene.add(camera);
     // renderer
     renderer = new THREE.WebGLRenderer({
       antialias: true
     });
+
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
     container = document.createElement('div');
@@ -160,7 +188,10 @@
   function onObjectLoad(object) {
     if (wrlObject) scene.remove(wrlObject);
     wrlObject = object;
+    measureModel();
     updateNormal();
+    resetCemara();
+    initControls();
     scene.add(wrlObject);
   }
 
@@ -230,8 +261,42 @@
     }
   }
 
+  function measureModel() {
+    var vertices = []
+
+    measure.sphere = new THREE.Sphere();
+    measure.faces = 0;
+
+
+    for (var i = 0; i < wrlObject.children.length; ++i) {
+      var child = wrlObject.children[i];
+      if (child.children.length == 0) continue; // sky...
+      var mesh = child.children[0];
+      vertices.push.apply(vertices, mesh.geometry.vertices);
+      measure.faces += mesh.geometry.faces.length;
+    }
+
+    measure.sphere.setFromPoints(vertices);
+    measure.vertices = vertices.length;
+
+    var c = measure.sphere.center;
+
+    $("#measure").html("#V = " + measure.vertices + " #F = " + measure.faces + " COM = " + c.toFixed(3) + " R = " + measure.sphere.radius.toFixed(3));
+
+  }
+
+  function resetCemara() {
+    // move model to the center
+    var c = measure.sphere.center;
+    wrlObject.position.sub(c);
+
+    camera.position.z = measure.sphere.radius * 2.5;
+  }
+
+
   function animate() {
     requestAnimationFrame(animate);
+    if (!camera) return;
     controls.update();
     renderer.render(scene, camera);
     stats.update();
