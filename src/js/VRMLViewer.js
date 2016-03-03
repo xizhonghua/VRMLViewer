@@ -1,9 +1,9 @@
 var container, stats;
 var camera, controls, scene, renderer;
+var lightCamerahelper;
 var cross;
 var wrlObject = null;
 var mouseDown = false;
-var floor;
 
 var config = {
   vertexNormal: true,
@@ -59,20 +59,25 @@ function initControls() {
 
 function init() {
   scene = new THREE.Scene();
-  floor = createFloor();
+
+  var floor = createFloor();
   scene.add(floor);
+
+  var ambient = new THREE.AmbientLight(0x666666);
+  scene.add(ambient);
+
+  var light = createLight();
+  scene.add(light);
+  scene.add(light.target);
+
+
+  lightCamerahelper = new THREE.CameraHelper(light.shadow.camera);
+  lightCamerahelper.visible = true;
+  scene.add(lightCamerahelper);
 
   // create camera
   camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 1e10);
   camera.position.z = 3;
-
-  // light
-  var dirLight = new THREE.SpotLight(0xcccccc);
-  dirLight.position.set(200, 200, 1000); //.normalize();
-  dirLight.castShadow = true;
-  dirLight.shadowDarkness = 0.5;
-  camera.add(dirLight);
-  camera.add(dirLight.target);
 
   scene.add(camera);
   // renderer
@@ -80,9 +85,14 @@ function init() {
     antialias: true
   });
 
-  renderer.shadowMapType = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.enabled = true;
+  // renderer.shadowMapSoft = true;
+
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
+
+
   container = document.createElement('div');
   document.body.appendChild(container);
   container.appendChild(renderer.domElement);
@@ -144,14 +154,34 @@ function loadModelFromFile(file) {
   loader.loadFile(file, onModelLoaded);
 }
 
+function createLight() {
+  // light
+  var light = new THREE.SpotLight(0x999999);
+  light.position.set(6, 6, 12); //.normalize();
+  light.castShadow = true;
+
+
+  light.shadow.mapSize.width = 1024;
+  light.shadow.mapSize.height = 1024;
+
+  light.shadow.camera.position.copy(light.position);
+  light.shadow.camera.near = 10;
+  light.shadow.camera.far = 20;
+  light.shadow.camera.fov = 60;
+  light.shadow.camera.updateProjectionMatrix();
+  // light.shadow.
+
+  return light;
+}
+
 function createFloor(object) {
-  geometry = new THREE.PlaneGeometry(2000, 2000, 5, 5);
+  var geometry = new THREE.BoxGeometry(10, 10, 0.1);
   // geometry.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
   var texture = THREE.ImageUtils.loadTexture('textures/floor.jpg');
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(16, 16);
 
-  material = new THREE.MeshBasicMaterial({ color: 0xffffff, map: texture });
+  var material = new THREE.MeshLambertMaterial({ color: 0xffffff, map: texture });
   var mesh = new THREE.Mesh(geometry, material);
 
   mesh.castShadow = false;
@@ -162,8 +192,13 @@ function createFloor(object) {
 function onModelLoaded(object) {
   if (wrlObject) scene.remove(wrlObject);
   wrlObject = object;
-  wrlObject.castShadow = true;
-  wrlObject.receiveShadow = false;
+
+  wrlObject.traverse(function(obj) {
+    console.log('set cast shadow' + obj.name);
+    obj.castShadow = true;
+    obj.receiveShadow = true;
+  });
+
   measureModel();
   updateNormal();
   resetCemara();
@@ -172,10 +207,12 @@ function onModelLoaded(object) {
 }
 
 function onKeyPress(e) {
+  if (wrlObject == null) return;
+
   var key = event.keyCode || event.which;
   var keychar = String.fromCharCode(key);
   if (keychar == 'r') {
-    wrlObject.rotation.x = wrlObject.rotation.y = wrlObject.z = 0.0;
+    wrlObject.rotation.x = wrlObject.rotation.y = wrlObject.rotation.z = 0.0;
   } else if (keychar == 'x') {
     wrlObject.rotation.x = wrlObject.rotation.x + 0.05;
   } else if (keychar == 'X') {
@@ -188,8 +225,18 @@ function onKeyPress(e) {
     wrlObject.rotation.z = wrlObject.rotation.z + 0.05;
   } else if (keychar == 'Z') {
     wrlObject.rotation.z = wrlObject.rotation.z - 0.05;
+  } else if (keychar == 'j') {
+    wrlObject.position.x -= 0.02;
+  } else if (keychar == 'l') {
+    wrlObject.position.x += 0.02;
+  } else if (keychar == 'i') {
+    wrlObject.position.z += 0.02;
+  } else if (keychar == 'k') {
+    wrlObject.position.z -= 0.02;
   } else if (keychar == 'c') {
     toggleColors();
+  } else if (keychar == 's') {
+    lightCamerahelper.visible = !lightCamerahelper.visible;
   } else if (keychar == 'h') {
     $helpDialog.dialog('open');
   }
@@ -264,11 +311,13 @@ function measureModel() {
 function resetCemara() {
   // move model to the center
   var c = measure.sphere.center;
-  wrlObject.position.sub(c);
+  var s = 1.0 / measure.sphere.radius;
+  wrlObject.position.sub(c.clone().multiplyScalar(s));
   wrlObject.position.z = 0.0; // put on the floor...
+  wrlObject.scale.set(s, s, s);
 
   camera.position.x = camera.position.y = camera.position.z = 0;
-  camera.position.z = measure.sphere.radius * 2.5;
+  camera.position.z = 2.5;
   camera.rotation.x = camera.rotation.y = camera.rotation.z = 0;
 }
 
