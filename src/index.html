@@ -75,7 +75,7 @@
 
   // load model list
   function loadModelList(callback) {
-    $.get("models/models.json", function(modeList) {
+    $.getJSON("models/models.json", function(modeList) {
       var list = $("#model-list");
       $.each(modeList, function(index, item) {
         list.append(new Option(item.name, item.url));
