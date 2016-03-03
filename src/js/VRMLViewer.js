@@ -63,16 +63,16 @@ function init() {
   var floor = createFloor();
   scene.add(floor);
 
-  var ambient = new THREE.AmbientLight(0x666666);
+  var ambient = new THREE.AmbientLight(0x999999);
   scene.add(ambient);
 
   var light = createLight();
   scene.add(light);
   scene.add(light.target);
 
-
+  // add light camera helper
   lightCamerahelper = new THREE.CameraHelper(light.shadow.camera);
-  lightCamerahelper.visible = true;
+  lightCamerahelper.visible = false;
   scene.add(lightCamerahelper);
 
   // create camera
@@ -156,13 +156,16 @@ function loadModelFromFile(file) {
 
 function createLight() {
   // light
-  var light = new THREE.SpotLight(0x999999);
-  light.position.set(6, 6, 12); //.normalize();
+  var light = new THREE.DirectionalLight(0x333333, 1.0);
+  light.position.set(6, -6, 12); //.normalize();
   light.castShadow = true;
 
 
   light.shadow.mapSize.width = 1024;
   light.shadow.mapSize.height = 1024;
+  light.shadow.bias = 0.001;
+
+  // update light camera
 
   light.shadow.camera.position.copy(light.position);
   light.shadow.camera.near = 10;
@@ -176,7 +179,6 @@ function createLight() {
 
 function createFloor(object) {
   var geometry = new THREE.BoxGeometry(10, 10, 0.1);
-  // geometry.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
   var texture = THREE.ImageUtils.loadTexture('textures/floor.jpg');
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(16, 16);
@@ -194,7 +196,6 @@ function onModelLoaded(object) {
   wrlObject = object;
 
   wrlObject.traverse(function(obj) {
-    console.log('set cast shadow' + obj.name);
     obj.castShadow = true;
     obj.receiveShadow = true;
   });
@@ -233,8 +234,14 @@ function onKeyPress(e) {
     wrlObject.position.z += 0.02;
   } else if (keychar == 'k') {
     wrlObject.position.z -= 0.02;
+  } else if (keychar == 'u') {
+    wrlObject.position.y -= 0.02;
+  } else if (keychar == 'o') {
+    wrlObject.position.y += 0.02;
   } else if (keychar == 'c') {
     toggleColors();
+  } else if (keychar == 'w') {
+    toggleWirefream();
   } else if (keychar == 's') {
     lightCamerahelper.visible = !lightCamerahelper.visible;
   } else if (keychar == 'h') {
@@ -261,6 +268,16 @@ function toggleColors() {
       mesh.material.color = new THREE.Color(colors[index]);
     }
   }
+}
+
+function toggleWirefream() {
+  if (!wrlObject) return;
+
+  wrlObject.traverse(function(obj) {
+    if (obj.mesh != null) {
+      obj.material.wrireframe = !obj.material.wrireframe;
+    }
+  });
 }
 
 function updateNormal() {
@@ -316,7 +333,7 @@ function resetCemara() {
   wrlObject.position.z = 0.0; // put on the floor...
   wrlObject.scale.set(s, s, s);
 
-  camera.position.x = camera.position.y = camera.position.z = 0;
+  camera.position.x = camera.position.y = 0;
   camera.position.z = 2.5;
   camera.rotation.x = camera.rotation.y = camera.rotation.z = 0;
 }
