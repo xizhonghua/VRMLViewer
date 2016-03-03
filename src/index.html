@@ -290,7 +290,9 @@
     var c = measure.sphere.center;
     wrlObject.position.sub(c);
 
+    camera.position.x = camera.position.y = camera.position.z = 0;
     camera.position.z = measure.sphere.radius * 2.5;
+    camera.rotation.x = camera.rotation.y = camera.rotation.z = 0;
   }
 
 
