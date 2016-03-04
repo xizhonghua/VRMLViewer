@@ -4,7 +4,6 @@ var lightCamerahelper;
 var cross;
 var wrlObject = null;
 var mouseDown = false;
-var showWireframe = false;
 var walls = [];
 
 var config = {
@@ -134,6 +133,7 @@ function onWindowResize() {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
   // controls.handleResize();
+  render();
 }
 
 function onDrop(e) {
@@ -225,7 +225,7 @@ function clearModel() {
 
   // find all wireframes
   scene.traverse(function(obj) {
-    if (obj instanceof THREE.WireframeHelper)
+    if (obj instanceof THREE.EdgesHelper)
       objectsToRemove.push(obj);
   });
 
@@ -248,7 +248,8 @@ function onModelLoaded(object) {
       return;
     }
     if (obj instanceof THREE.Mesh) {
-      var wireframe = new THREE.WireframeHelper(obj, 0x333333);
+      obj.geometry.dynamic = true;
+      var wireframe = new THREE.EdgesHelper(obj, 0x333333, 0.01);
       scene.add(wireframe);
     }
   });
@@ -296,17 +297,21 @@ function onKeyPress(e) {
   } else if (keychar == 'c') {
     toggleColors();
   } else if (keychar == 'w') {
-    toggleWirefream();
+    toggleWireframe();
   } else if (keychar == 'f') {
     toggleWalls();
   } else if (keychar == 's') {
     lightCamerahelper.visible = !lightCamerahelper.visible;
+  } else if (keychar == 'n') {
+    config.vertexNormal = !config.vertexNormal;
+    updateNormal();
   } else if (keychar == 'h') {
     $helpDialog.dialog('open');
   }
 
   // render twice...
   render();
+
   render();
 }
 
@@ -331,11 +336,11 @@ function toggleColors() {
   }
 }
 
-function toggleWirefream() {
+function toggleWireframe() {
   if (!wrlObject) return;
 
   scene.traverse(function(obj) {
-    if (obj instanceof THREE.WireframeHelper)
+    if (obj instanceof THREE.EdgesHelper)
       obj.visible = !obj.visible;
   });
 }
@@ -347,24 +352,22 @@ function toggleWalls() {
 }
 
 function updateNormal() {
-  for (var i = 0; i < wrlObject.children.length; ++i) {
-    var child = wrlObject.children[i];
-    if (child.children.length == 0) continue; // sky...
-    var mesh = child.children[0];
+  wrlObject.traverse(function(obj) {
+    if (!obj.geometry) return;
     if (config.vertexNormal) {
-      mesh.geometry.computeVertexNormals();
+      obj.geometry.computeVertexNormals();
     } else {
-      //   // clear vertex normal
-      //   for ( var f = 0, fl = mesh.geometry.faces.length; f < fl; f ++ ) {
-      //     var face = mesh.geometry.faces[f];
-      //     face.vertexNormals = [];
-      //   }
-      //   mesh.geometry.verticesNeedUpdate = true;
-      //   mesh.geometry.normalsNeedUpdate = true;
-      //   mesh.geometry.elementsNeedUpdate = true;
-      //   mesh.geometry.dynamic = true;
+      // clear vertex normal
+      for (var f = 0, fl = obj.geometry.faces.length; f < fl; f++) {
+        var face = obj.geometry.faces[f];
+        face.vertexNormals = [];
+      }
     }
-  }
+    // clear the buffer...
+    delete obj.geometry._bufferGeometry;
+    delete obj.geometry.__directGeometry;
+    obj.geometry.normalsNeedUpdate = true;
+  });
 }
 
 function measureModel() {
