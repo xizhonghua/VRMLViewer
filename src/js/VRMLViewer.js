@@ -4,6 +4,8 @@ var lightCamerahelper;
 var cross;
 var wrlObject = null;
 var mouseDown = false;
+var showWireframe = false;
+var walls = [];
 
 var config = {
   vertexNormal: true,
@@ -24,6 +26,7 @@ $(function() {
   loadModelList(function() {
     init();
     animate();
+    render();
   });
 });
 
@@ -54,14 +57,16 @@ function initControls() {
   controls.staticMoving = true;
   controls.dynamicDampingFactor = 0.3;
   // controls.keys = [65, 83, 68];
-  // controls.addEventListener( 'change', render );
+  controls.addEventListener('change', render);
 }
 
 function init() {
   scene = new THREE.Scene();
 
-  var floor = createFloor();
-  scene.add(floor);
+  walls = createWalls();
+  $.each(walls, function(index, wall) {
+    scene.add(wall);
+  })
 
   var ambient = new THREE.AmbientLight(0x999999);
   scene.add(ambient);
@@ -94,12 +99,14 @@ function init() {
 
 
   container = document.createElement('div');
+  container.id = "canvas";
   document.body.appendChild(container);
   container.appendChild(renderer.domElement);
-  stats = new Stats();
-  stats.domElement.style.position = 'absolute';
-  stats.domElement.style.top = '0px';
-  container.appendChild(stats.domElement);
+  // stats = new Stats();
+  // stats.domElement.style.position = 'absolute';
+  // stats.domElement.style.top = '0px';
+  // container.appendChild(stats.domElement);
+
   // controls
   initControls();
   $("#model-list").change(onModelListChange);
@@ -177,27 +184,73 @@ function createLight() {
   return light;
 }
 
-function createFloor(object) {
-  var geometry = new THREE.BoxGeometry(10, 10, 0.1);
+function createWalls(object) {
+  var SIZE = 10;
+  var DEPTH = 0.1;
+
+  var geometry = new THREE.BoxGeometry(SIZE, SIZE, DEPTH);
+
   var texture = THREE.ImageUtils.loadTexture('textures/floor.jpg');
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(16, 16);
+  texture.repeat.set(12, 12);
 
   var material = new THREE.MeshLambertMaterial({ color: 0xffffff, map: texture });
-  var mesh = new THREE.Mesh(geometry, material);
+  var floor = new THREE.Mesh(geometry, material);
 
-  mesh.castShadow = false;
-  mesh.receiveShadow = true;
-  return mesh;
+  floor.castShadow = false;
+  floor.receiveShadow = true;
+
+  var left = floor.clone();
+  left.position.x = 0;
+  left.position.y = -5;
+  left.position.z = 5;
+  left.rotateX(Math.PI / 2);
+
+  var right = left.clone();
+  right.position.y = 5;
+
+  var back = floor.clone();
+  back.position.x = -5;
+  back.position.y = 0;
+  back.position.z = 5;
+  back.rotateY(Math.PI / 2);
+
+
+  return [floor, left, right, back];
+}
+
+function clearModel() {
+
+  var objectsToRemove = [wrlObject];
+
+  // find all wireframes
+  scene.traverse(function(obj) {
+    if (obj instanceof THREE.WireframeHelper)
+      objectsToRemove.push(obj);
+  });
+
+  $.each(objectsToRemove, function(index, obj) {
+    if (obj) scene.remove(obj);
+  });
+
 }
 
 function onModelLoaded(object) {
-  if (wrlObject) scene.remove(wrlObject);
+  clearModel();
+
   wrlObject = object;
 
   wrlObject.traverse(function(obj) {
     obj.castShadow = true;
     obj.receiveShadow = true;
+    if (obj.geometry instanceof THREE.SphereGeometry) {
+      // sky
+      return;
+    }
+    if (obj instanceof THREE.Mesh) {
+      var wireframe = new THREE.WireframeHelper(obj, 0x333333);
+      scene.add(wireframe);
+    }
   });
 
   measureModel();
@@ -205,6 +258,8 @@ function onModelLoaded(object) {
   resetCemara();
   initControls();
   scene.add(wrlObject);
+
+  render();
 }
 
 function onKeyPress(e) {
@@ -242,11 +297,17 @@ function onKeyPress(e) {
     toggleColors();
   } else if (keychar == 'w') {
     toggleWirefream();
+  } else if (keychar == 'f') {
+    toggleWalls();
   } else if (keychar == 's') {
     lightCamerahelper.visible = !lightCamerahelper.visible;
   } else if (keychar == 'h') {
     $helpDialog.dialog('open');
   }
+
+  // render twice...
+  render();
+  render();
 }
 
 function toggleColors() {
@@ -273,10 +334,15 @@ function toggleColors() {
 function toggleWirefream() {
   if (!wrlObject) return;
 
-  wrlObject.traverse(function(obj) {
-    if (obj.mesh != null) {
-      obj.material.wrireframe = !obj.material.wrireframe;
-    }
+  scene.traverse(function(obj) {
+    if (obj instanceof THREE.WireframeHelper)
+      obj.visible = !obj.visible;
+  });
+}
+
+function toggleWalls() {
+  $.each(walls, function(index, wall) {
+    wall.visible = !wall.visible;
   });
 }
 
@@ -343,6 +409,8 @@ function animate() {
   requestAnimationFrame(animate);
   if (!camera) return;
   controls.update();
+}
+
+function render() {
   renderer.render(scene, camera);
-  stats.update();
 }

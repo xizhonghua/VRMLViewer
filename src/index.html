@@ -15,11 +15,10 @@
 <body>
   <div id="info">
     <div>
-      Models:
       <select id="model-list">
       </select>
-    </div>
-    <div id="measure">
+      <span id="measure">
+      </span>
     </div>
   </div>
   <div id="copyright">
@@ -38,14 +37,13 @@
     <br/> j,l,i,k,u,o: translate model
     <br/> s: toggle shadow camera's view region
     <br/> r: reset model/camera position/rotation
+    <br/> w: toggle wireframes
+    <br/> f: toggle walls
     <br/> c: toggle colors [original/preset]
     <br/>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r74/three.min.js"></script>
   <script src="http://threejs.org/examples/js/controls/TrackballControls.js"></script>
-  <script src="http://threejs.org/examples/js/libs/stats.min.js">
-  </script>
-  <script src="http://threejs.org/examples/js/libs/dat.gui.min.js"></script>
   <script src="http://threejs.org/examples/js/Detector.js"></script>
   <script src="js/VRMLLoader.js"></script>
   <script src="js/extension.js"></script>
