@@ -1,6 +1,6 @@
 var container, stats;
 var camera, controls, scene, renderer;
-var lightCamerahelper;
+var lightCamerahelpers = [];
 var cross;
 var wrlObject = null;
 var mouseDown = false;
@@ -67,17 +67,20 @@ function init() {
     scene.add(wall);
   })
 
-  var ambient = new THREE.AmbientLight(0x999999);
+  var ambient = new THREE.AmbientLight(0xaaaaaa);
   scene.add(ambient);
 
-  var light = createLight();
-  scene.add(light);
-  scene.add(light.target);
+  for (var i = 0; i < 1; ++i) {
+    var light = createLight(2 * i - 1);
+    scene.add(light);
+    scene.add(light.target);
 
-  // add light camera helper
-  lightCamerahelper = new THREE.CameraHelper(light.shadow.camera);
-  lightCamerahelper.visible = false;
-  scene.add(lightCamerahelper);
+    // add light camera helper
+    var lightCamerahelper = new THREE.CameraHelper(light.shadow.camera);
+    lightCamerahelper.visible = false;
+    scene.add(lightCamerahelper);
+    lightCamerahelpers.push(lightCamerahelper)
+  }
 
   // create camera
   camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 1e10);
@@ -161,10 +164,10 @@ function loadModelFromFile(file) {
   loader.loadFile(file, onModelLoaded);
 }
 
-function createLight() {
+function createLight(y_dir) {
   // light
-  var light = new THREE.DirectionalLight(0x333333, 1.0);
-  light.position.set(6, -6, 12); //.normalize();
+  var light = new THREE.SpotLight(0x333333, 1.0, 1e5, Math.PI / 3, 2.0, 1);
+  light.position.set(3, 3 * y_dir, 12); //.normalize();
   light.castShadow = true;
 
 
@@ -301,7 +304,8 @@ function onKeyPress(e) {
   } else if (keychar == 'f') {
     toggleWalls();
   } else if (keychar == 's') {
-    lightCamerahelper.visible = !lightCamerahelper.visible;
+    for (var i = 0; i < lightCamerahelpers.length; ++i)
+      lightCamerahelpers[i].visible = !lightCamerahelpers[i].visible;
   } else if (keychar == 'n') {
     config.vertexNormal = !config.vertexNormal;
     updateNormal();
