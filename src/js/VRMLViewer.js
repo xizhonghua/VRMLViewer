@@ -3,13 +3,12 @@ var camera, controls, scene, renderer;
 var lightCamerahelpers = [];
 var cross;
 var wrlObject = null;
-var mouseDown = false;
 var walls = [];
-var model_version = 2;
+var model_version = 3;
 
 var config = {
-  vertexNormal: true,
-  orignialColor: true
+  vertexNormal: false,
+  orignialColor: false
 };
 
 var measure = {
@@ -71,8 +70,8 @@ function init() {
   var ambient = new THREE.AmbientLight(0x999999);
   scene.add(ambient);
 
-  for (var i = 0; i < 1; ++i) {
-    var light = createLight(2 * i - 1);
+  for (var i = 0; i < 2; ++i) {
+    var light = createLight((i / 2) * 2 - 1, (i % 2) * 2 - 1, i == 0);
     scene.add(light);
     scene.add(light.target);
 
@@ -165,25 +164,28 @@ function loadModelFromFile(file) {
   loader.loadFile(file, onModelLoaded);
 }
 
-function createLight(y_dir) {
+function createLight(x_dir, y_dir, castShadow) {
   // light
-  var light = new THREE.SpotLight(0x666666, 1.0, 1e5, Math.PI / 3, 2.0, 1);
-  light.position.set(3, 3 * y_dir, 12); //.normalize();
-  light.castShadow = true;
+  var light = new THREE.SpotLight(0x666666, 1.0, 20, Math.PI / 3, 0.5, 1);
+  light.position.set(-5 * x_dir, 5 * y_dir, 12); //.normalize();
+
+  if (castShadow) {
+    light.castShadow = true;
 
 
-  light.shadow.mapSize.width = 1024;
-  light.shadow.mapSize.height = 1024;
-  light.shadow.bias = 0.001;
+    light.shadow.mapSize.width = 1024;
+    light.shadow.mapSize.height = 1024;
+    light.shadow.bias = 0.001;
 
-  // update light camera
+    // update light camera
 
-  light.shadow.camera.position.copy(light.position);
-  light.shadow.camera.near = 10;
-  light.shadow.camera.far = 20;
-  light.shadow.camera.fov = 60;
-  light.shadow.camera.updateProjectionMatrix();
-  // light.shadow.
+    light.shadow.camera.position.copy(light.position);
+    light.shadow.camera.near = 3;
+    light.shadow.camera.far = 20;
+    light.shadow.camera.fov = 60;
+    light.shadow.camera.updateProjectionMatrix();
+    // light.shadow.
+  }
 
   return light;
 }
@@ -255,6 +257,7 @@ function onModelLoaded(object) {
       obj.geometry.dynamic = true;
       var wireframe = new THREE.EdgesHelper(obj, 0x333333, 0.0);
       wireframe.material.linewidth = 1.5;
+      wireframe.visible = false; // do not show by default
       scene.add(wireframe);
     }
   });
@@ -263,6 +266,10 @@ function onModelLoaded(object) {
   updateNormal();
   resetCemara();
   initControls();
+
+  if (!config.orignialColor)
+    toggleColors();
+
   scene.add(wrlObject);
 
   render();
@@ -323,9 +330,9 @@ function onKeyPress(e) {
 
 function toggleColors() {
   var index = 0;
-  var colors = [0xFFB300, 0x803E75, 0xFF6800, 0xA6BDD7, 0xC10020, 0xCEA262,
-    0x817066, 0x007D34, 0xF6768E, 0x00538A, 0xFF7A5C, 0x53377A, 0xFF8E00,
-    0xB32851
+  var colors = [0x000099, 0xffff99, 0x006600, 0xff0000, 0x00ccff, 0xcc00cc,
+    0xcc6600, 0xffcccc, 0x0000cc, 0x33ff33, 0x996600, 0x00538A, 0xFF7A5C, 0x53377A, 0xFF8E00,
+    0xB32851,
   ];
   for (var i = 0; i < wrlObject.children.length; ++i) {
     var child = wrlObject.children[i];
