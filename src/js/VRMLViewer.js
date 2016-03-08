@@ -267,8 +267,7 @@ function onModelLoaded(object) {
   render();
 }
 
-function onK
-eyPress(e) {
+function onKeyPress(e) {
   if (wrlObject == null) return;
 
   var key = event.keyCode || event.which;
