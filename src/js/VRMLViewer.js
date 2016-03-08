@@ -67,7 +67,7 @@ function init() {
     scene.add(wall);
   })
 
-  var ambient = new THREE.AmbientLight(0xaaaaaa);
+  var ambient = new THREE.AmbientLight(0x999999);
   scene.add(ambient);
 
   for (var i = 0; i < 1; ++i) {
@@ -83,7 +83,7 @@ function init() {
   }
 
   // create camera
-  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 1e10);
+  camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 1e10);
   camera.position.z = 3;
 
   scene.add(camera);
@@ -166,7 +166,7 @@ function loadModelFromFile(file) {
 
 function createLight(y_dir) {
   // light
-  var light = new THREE.SpotLight(0x333333, 1.0, 1e5, Math.PI / 3, 2.0, 1);
+  var light = new THREE.SpotLight(0x666666, 1.0, 1e5, Math.PI / 3, 2.0, 1);
   light.position.set(3, 3 * y_dir, 12); //.normalize();
   light.castShadow = true;
 
