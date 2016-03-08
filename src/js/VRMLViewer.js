@@ -5,6 +5,7 @@ var cross;
 var wrlObject = null;
 var mouseDown = false;
 var walls = [];
+var model_version = 2;
 
 var config = {
   vertexNormal: true,
@@ -34,7 +35,7 @@ function loadModelList(callback) {
   $.getJSON("models/models.json", function(modeList) {
     var list = $("#model-list");
     $.each(modeList, function(index, item) {
-      list.append(new Option(item.name, item.url));
+      list.append(new Option(item.name, item.url + '?t=' + model_version));
     });
     callback();
   });
