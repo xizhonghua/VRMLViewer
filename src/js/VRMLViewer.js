@@ -197,7 +197,7 @@ function createWalls(object) {
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(12, 12);
 
-  var material = new THREE.MeshLambertMaterial({ color: 0xffffff, map: texture });
+  var material = new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x333333, map: texture });
   var floor = new THREE.Mesh(geometry, material);
 
   floor.castShadow = false;
@@ -252,7 +252,8 @@ function onModelLoaded(object) {
     }
     if (obj instanceof THREE.Mesh) {
       obj.geometry.dynamic = true;
-      var wireframe = new THREE.EdgesHelper(obj, 0x333333, 0.01);
+      var wireframe = new THREE.EdgesHelper(obj, 0x333333, 0.0);
+      wireframe.material.linewidth = 1.5;
       scene.add(wireframe);
     }
   });
@@ -266,7 +267,8 @@ function onModelLoaded(object) {
   render();
 }
 
-function onKeyPress(e) {
+function onK
+eyPress(e) {
   if (wrlObject == null) return;
 
   var key = event.keyCode || event.which;
